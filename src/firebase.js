@@ -16,4 +16,4 @@ const auth = firebase.auth();
 //use storage to upload pictures and store in the db
 const storage = firebase.storage();
 
-export {db, auth, storage};
+export { db, auth, storage };

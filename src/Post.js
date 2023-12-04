@@ -1,8 +1,47 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import './Post.css'
 import Avatar from '@material-ui/core/Avatar'
+import { db } from './firebase'
+import firebase from 'firebase'
 
 function Post(props) {
+    const [comments, setComments] = useState([])
+    const [newComment, setNewComment] = useState('')
+
+    useEffect(() => {
+        let unsubscribe
+        if (props.postId) {
+            unsubscribe = db.collection('posts')
+                .doc(props.postId)
+                .collection('comments')
+                .orderBy('timestamp', 'desc')
+                .onSnapshot((snapshot) => {
+                    setComments(snapshot.docs.map((doc) => doc.data()))
+                })
+        }
+
+        return () => [
+            unsubscribe()
+        ]
+    }, [props.postId])
+
+    const postComment = (event) => {
+        event.preventDefault()
+
+        console.log('Comments: ', comments)
+
+        db.collection('posts')
+            .doc(props.postId)
+            .collection('comments')
+            .add({
+                text: newComment,
+                username: props.user.displayName,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            })
+
+        setNewComment('')
+    }
+
     return (
         <div className="post">
 
@@ -11,7 +50,7 @@ function Post(props) {
                 <Avatar
                     className="post__avatar"
                     alt='Catherine'
-                    src="https://fiverr-res.cloudinary.com/images/t_main1,q_auto,f_auto/gigs/130062185/original/243a32fa7260bfb8718af4341a9449e271ee3867/draw-a-cute-cartoon-portrait-for-a-profile-picture.jpg"
+                    src="/static/images/avatar/1.jpg"
                 />
                 <h3>{props.username}</h3>
             </div>
@@ -20,7 +59,37 @@ function Post(props) {
             <img className="post__image" alt="post" src={props.imageUrl} />
 
             {/* username + caption */}
-            <h4 className="post__text"><strong>Username: </strong>{props.caption}</h4>
+            <h4 className="post__text"><strong>{props.username} </strong>{props.caption}</h4>
+
+
+            <div className="post__comments">
+                {
+                    comments.map((comment) => {
+                        return <p>
+                            <strong>{comment.username}</strong> {comment.text}
+                        </p>
+                    })
+
+                }
+            </div>
+
+            {props.user?.displayName &&
+                <form className="post__commentBox">
+                    <input
+                        className="post__comment"
+                        type="text"
+                        placeholder="Add a comment.."
+                        value={newComment}
+                        onChange={(e) => { setNewComment(e.target.value) }}
+                    />
+                    <button
+                        className="post__button"
+                        type="submit"
+                        disabled={!newComment}
+                        onClick={postComment}
+                    >Post
+                    </button>
+                </form>}
         </div>
     )
 }
